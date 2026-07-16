@@ -21,6 +21,7 @@ const (
 	testAWSDynamoErrorTable      = "Error"
 	testAWSDynamoNoValueTable    = "NoValue"
 	testAWSDynamoIndexTable      = "Index"
+	testAWSDynamoPaginatedTable  = "Paginated"
 )
 
 var testAWSDynamoAuthentication = map[string]string{
@@ -414,6 +415,19 @@ func (c *mockDynamoDB) Query(_ context.Context, input *dynamodb.QueryInput, _ ..
 		return &dynamodb.QueryOutput{
 			Count: empty,
 		}, nil
+	case testAWSDynamoPaginatedTable:
+		if input.ExclusiveStartKey == nil {
+			return &dynamodb.QueryOutput{
+				Count: 3,
+				LastEvaluatedKey: map[string]types.AttributeValue{
+					"id": &types.AttributeValueMemberS{Value: "page-2"},
+				},
+			}, nil
+		}
+
+		return &dynamodb.QueryOutput{
+			Count: 7,
+		}, nil
 	}
 
 	if input.IndexName != nil {
@@ -462,6 +476,14 @@ var awsDynamoDBGetMetricTestData = []awsDynamoDBMetadata{
 		ActivationTargetValue:     3,
 		TargetValue:               3,
 	},
+	{
+		TableName:                 testAWSDynamoPaginatedTable,
+		AwsRegion:                 "eu-west-1",
+		KeyConditionExpression:    "#yr = :yyyy",
+		expressionAttributeNames:  map[string]string{"#yr": year},
+		expressionAttributeValues: map[string]types.AttributeValue{":yyyy": yearAttr},
+		TargetValue:               3,
+	},
 }
 
 func TestDynamoGetMetrics(t *testing.T) {
@@ -477,6 +499,8 @@ func TestDynamoGetMetrics(t *testing.T) {
 				assert.NoError(t, err, "dont expect error when returning empty result from dynamodb")
 			case testAWSDynamoIndexTable:
 				assert.EqualValues(t, int64(2), value[0].Value.Value())
+			case testAWSDynamoPaginatedTable:
+				assert.EqualValues(t, int64(10), value[0].Value.Value())
 			default:
 				assert.EqualValues(t, int64(4), value[0].Value.Value())
 			}
@@ -497,6 +521,8 @@ func TestDynamoGetQueryMetrics(t *testing.T) {
 				assert.NoError(t, err, "dont expect error when returning empty result from dynamodb")
 			case testAWSDynamoIndexTable:
 				assert.EqualValues(t, int64(2), value)
+			case testAWSDynamoPaginatedTable:
+				assert.EqualValues(t, int64(10), value)
 			default:
 				assert.EqualValues(t, int64(4), value)
 			}
