@@ -401,6 +401,7 @@ func TestParseDynamoMetadata(t *testing.T) {
 }
 
 type mockDynamoDB struct {
+	paginatedQueryCalls int
 }
 
 var result int32 = 4
@@ -416,6 +417,7 @@ func (c *mockDynamoDB) Query(_ context.Context, input *dynamodb.QueryInput, _ ..
 			Count: empty,
 		}, nil
 	case testAWSDynamoPaginatedTable:
+		c.paginatedQueryCalls++
 		if input.ExclusiveStartKey == nil {
 			return &dynamodb.QueryOutput{
 				Count: 3,
@@ -512,6 +514,7 @@ func TestDynamoGetQueryMetrics(t *testing.T) {
 	for _, meta := range awsDynamoDBGetMetricTestData {
 		t.Run(meta.TableName, func(t *testing.T) {
 			scaler := awsDynamoDBScaler{"", &meta, &mockDynamoDB{}, nil, logr.Discard()}
+			mockClient := scaler.dbClient.(*mockDynamoDB)
 
 			value, err := scaler.GetQueryMetrics(context.Background())
 			switch meta.TableName {
@@ -523,6 +526,7 @@ func TestDynamoGetQueryMetrics(t *testing.T) {
 				assert.EqualValues(t, int64(2), value)
 			case testAWSDynamoPaginatedTable:
 				assert.EqualValues(t, int64(10), value)
+				assert.Equal(t, 2, mockClient.paginatedQueryCalls)
 			default:
 				assert.EqualValues(t, int64(4), value)
 			}
