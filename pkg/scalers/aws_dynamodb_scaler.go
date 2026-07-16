@@ -199,14 +199,23 @@ func (s *awsDynamoDBScaler) GetQueryMetrics(ctx context.Context) (float64, error
 		dimensions.IndexName = aws.String(s.metadata.IndexName)
 	}
 
-	res, err := s.dbClient.Query(ctx, &dimensions)
+	var totalCount int64
+	for {
+		res, err := s.dbClient.Query(ctx, &dimensions)
+		if err != nil {
+			s.logger.Error(err, "Failed to get output")
+			return 0, err
+		}
 
-	if err != nil {
-		s.logger.Error(err, "Failed to get output")
-		return 0, err
+		totalCount += int64(res.Count)
+		if len(res.LastEvaluatedKey) == 0 {
+			break
+		}
+
+		dimensions.ExclusiveStartKey = res.LastEvaluatedKey
 	}
 
-	return float64(res.Count), nil
+	return float64(totalCount), nil
 }
 
 // json2Map convert Json to map[string]string
