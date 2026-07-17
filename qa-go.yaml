@@ -1,0 +1,21 @@
+setups:
+  main:
+    steps:
+    - ARCH="$(uname -m)"; case "$ARCH" in x86_64) GOARCH=amd64;; aarch64|arm64) GOARCH=arm64;;
+      *) GOARCH="$ARCH";; esac; mkdir -p "$PWD/.toolchain/go" "$PWD/.local/bin" "$PWD/.cache/gomod"
+      "$PWD/.cache/go-build" && curl -fsSL "https://go.dev/dl/go1.26.0.linux-${GOARCH}.tar.gz"
+      -o "$PWD/.cache/go1.26.0.linux-${GOARCH}.tar.gz" && tar -C "$PWD/.toolchain/go"
+      -xzf "$PWD/.cache/go1.26.0.linux-${GOARCH}.tar.gz" --strip-components=1 && ln
+      -sf "$PWD/.toolchain/go/bin/go" "$PWD/.local/bin/go" && ln -sf "$PWD/.toolchain/go/bin/gofmt"
+      "$PWD/.local/bin/gofmt"
+    - GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/go-build" "$PWD/.local/bin/go"
+      mod download
+suites:
+- id: default
+  setup: main
+  paths: []
+  tests:
+  - ./pkg/...
+  - ./apis/...
+  - ./controllers/...
+  - ./cmd/...
