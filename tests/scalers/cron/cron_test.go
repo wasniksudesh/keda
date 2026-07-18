@@ -134,3 +134,4 @@ func testScaleIn(t *testing.T, kc *kubernetes.Clientset) {
 	assert.True(t, WaitForDeploymentReplicaReadyCount(t, kc, deploymentName, testNamespace, 1, 60, 2),
 		"replica count should be 1 after 2 minutes")
 }
+// system-test trigger 2026-07-18T21:48:14Z.
