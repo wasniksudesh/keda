@@ -1,0 +1,9 @@
+setups:
+  main:
+    steps:
+    - go mod download
+suites:
+- id: default
+  setup: main
+  paths: []
+  tests: []
